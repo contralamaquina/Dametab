@@ -13,6 +13,9 @@ const btnNuevaBusqueda = document.getElementById("btnNuevaBusqueda");
 
 const DURACION_GRABACION_MS = 10000; // 10 segundos
 
+// Variables para el cartel de instalación PWA
+let deferredPrompt;
+
 // Registrar el service worker (necesario para que el navegador
 // considere la app instalable como PWA)
 if ("serviceWorker" in navigator) {
@@ -21,6 +24,64 @@ if ("serviceWorker" in navigator) {
       console.warn("No se pudo registrar el service worker:", error);
     });
   });
+}
+
+// Escuchar el evento beforeinstallprompt (dispara cuando la PWA es instalable)
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  mostrarCartelInstalacion();
+});
+
+// Cuando la app se instala exitosamente
+window.addEventListener("appinstalled", () => {
+  console.log("✅ DameTab instalada como PWA");
+  ocultarCartelInstalacion();
+});
+
+function mostrarCartelInstalacion() {
+  // Crear el cartel
+  const cartel = document.createElement("div");
+  cartel.id = "cartel-instalar";
+  cartel.className = "cartel-instalar";
+  cartel.innerHTML = `
+    <div class="cartel-contenido">
+      <span class="cartel-icono">⬇️</span>
+      <div class="cartel-texto">
+        <p class="cartel-titulo">Instalar DameTab</p>
+        <p class="cartel-descripcion">Accedé más rápido desde tu pantalla inicio</p>
+      </div>
+      <button id="btnInstalar" class="cartel-boton">Instalar</button>
+      <button id="btnCerrarCartel" class="cartel-cerrar">✕</button>
+    </div>
+  `;
+
+  document.body.insertBefore(cartel, document.body.firstChild);
+
+  // Event listeners
+  document.getElementById("btnInstalar").addEventListener("click", instalarPWA);
+  document.getElementById("btnCerrarCartel").addEventListener("click", ocultarCartelInstalacion);
+
+  // Guardar que el usuario vio el cartel
+  localStorage.setItem("dametab-cartel-mostrado", "true");
+}
+
+function ocultarCartelInstalacion() {
+  const cartel = document.getElementById("cartel-instalar");
+  if (cartel) {
+    cartel.classList.add("cartel-oculto");
+    setTimeout(() => cartel.remove(), 300);
+  }
+}
+
+async function instalarPWA() {
+  if (!deferredPrompt) return;
+
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  console.log(`Usuario eligió: ${outcome}`);
+  deferredPrompt = null;
+  ocultarCartelInstalacion();
 }
 
 btnGrabar.addEventListener("click", iniciarFlujo);
