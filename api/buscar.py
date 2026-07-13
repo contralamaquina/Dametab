@@ -121,6 +121,11 @@ class handler(BaseHTTPRequestHandler):
             self._responder(200, {"encontrado": False})
             return
 
+        if body.get("debug"):
+            diagnostico = self._diagnosticar(resultados, titulo)
+            self._responder(200, diagnostico)
+            return
+
         opciones = self._puntuar_y_ordenar(resultados, titulo)
         if not opciones:
             self._responder(200, {"encontrado": False})
@@ -130,6 +135,42 @@ class handler(BaseHTTPRequestHandler):
             "encontrado": True,
             "opciones": opciones,
         })
+
+    def _diagnosticar(self, resultados, titulo_cancion):
+        """
+        Igual que _puntuar_y_ordenar pero sin descartar nada: anota el
+        motivo de descarte de cada resultado para poder ver qué está
+        filtrando de más (o si Serper directamente no trajo nada útil).
+        """
+        detalle = []
+        for r in resultados:
+            url_lower = r["url"].lower()
+            titulo_lower = r["titulo"].lower()
+            motivos = []
+
+            sitio_bloqueado = next((s for s in SITIOS_DESCARTAR if s in url_lower), None)
+            if sitio_bloqueado:
+                motivos.append(f"sitio bloqueado: {sitio_bloqueado}")
+
+            palabra_mala = next((p for p in PALABRAS_CLAVE_DESCARTAR_TITULO if p in titulo_lower), None)
+            if palabra_mala:
+                motivos.append(f"palabra clave descartada en título: '{palabra_mala}'")
+
+            if not self._coincide_con_la_cancion(titulo_cancion, r):
+                palabras = self._palabras_significativas(titulo_cancion)
+                motivos.append(f"no coincide con el título (buscaba: {palabras})")
+
+            detalle.append({
+                "titulo": r["titulo"],
+                "url": r["url"],
+                "pasaria_el_filtro": len(motivos) == 0,
+                "motivos_descarte": motivos,
+            })
+
+        return {
+            "total_resultados_serper": len(resultados),
+            "detalle": detalle,
+        }
 
     def _buscar_en_serper(self, consulta, api_key):
         url = "https://google.serper.dev/search"
