@@ -1,0 +1,19 @@
+Documentos/GitHub/Dametab/
+├── .git/
+├── api/
+│   ├── buscar.py
+│   └── identificar.py
+├── public/
+│   ├── app.bak
+│   ├── app.js
+│   ├── icono (.ico probablemente)
+│   ├── index.bak
+│   ├── index.html
+│   ├── manifest.json
+│   ├── service-worker.js
+│   ├── style.bak
+│   └── style.css
+├── generate-icons.py
+├── README.md
+├── requirements.txt
+└── vercel.json

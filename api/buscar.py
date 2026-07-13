@@ -8,6 +8,7 @@ resultados puntuados (0 a 5) con una heurística de confiabilidad por sitio.
 from http.server import BaseHTTPRequestHandler
 import json
 import os
+import re
 import urllib.request
 
 
@@ -22,7 +23,9 @@ SITIOS_PRIORIDAD = {
 }
 
 # Además de los obvios (redes sociales, video), descartamos explícitamente
-# noticias/reviews, tiendas, streaming y otros falsos positivos comunes.
+# noticias/reviews, tiendas, streaming, y AHORA TAMBIÉN los sitios de letras
+# más comunes (antes solo estaba genius.com, y por eso se colaban letras
+# en el fallback de búsqueda amplia).
 SITIOS_DESCARTAR = [
     "youtube.com",
     "youtu.be",
@@ -37,20 +40,35 @@ SITIOS_DESCARTAR = [
     "deezer.com",
     "soundcloud.com",
     "wikipedia.org",
-    "genius.com",  # tiene letras, no tablaturas de guitarra
     "amazon.com",
     "mercadolibre.com",
     "ebay.com",
+    # --- sitios de LETRAS (agregados) ---
+    "genius.com",
+    "letras.com",
+    "letras.mus.br",
+    "musica.com",
+    "azlyrics.com",
+    "musixmatch.com",
+    "lyrics.com",
+    "quedeletras.com",
+    "coveralia.com",
+    "vagalume.com.br",
+    "megaletras.com",
+    "letra.com.br",
 ]
 
 PALABRAS_CLAVE_BONUS = ["acordes", "tablatura", "tab", "chords"]
 
 # Palabras que casi siempre indican que el resultado NO es una tab en sí,
-# sino una noticia, reseña o producto que menciona la canción de paso.
+# sino una noticia, reseña, producto o LETRA que menciona la canción de paso.
 PALABRAS_CLAVE_DESCARTAR_TITULO = [
     "explains", "interview", "entrevista", "review", "reseña",
     "playlist", "news", "noticia", "compra", "buy", "price", "precio",
     "documental", "biography", "biografía",
+    # --- agregado: descartar explícitamente resultados de LETRAS ---
+    "letra de", "letras de", "lyrics", "letra y traducción",
+    "traducción de", "significado de",
 ]
 
 
@@ -103,7 +121,7 @@ class handler(BaseHTTPRequestHandler):
             self._responder(200, {"encontrado": False})
             return
 
-        opciones = self._puntuar_y_ordenar(resultados)
+        opciones = self._puntuar_y_ordenar(resultados, titulo)
         if not opciones:
             self._responder(200, {"encontrado": False})
             return
@@ -134,7 +152,45 @@ class handler(BaseHTTPRequestHandler):
             for item in items
         ]
 
-    def _puntuar_y_ordenar(self, resultados):
+    def _normalizar(self, texto):
+        """Minúsculas, sin acentos ni signos, solo para comparar palabras."""
+        texto = texto.lower()
+        reemplazos = {
+            "á": "a", "é": "e", "í": "i", "ó": "o", "ú": "u", "ñ": "n",
+        }
+        for original, plano in reemplazos.items():
+            texto = texto.replace(original, plano)
+        return re.sub(r"[^a-z0-9\s]", " ", texto)
+
+    def _palabras_significativas(self, texto):
+        """Palabras del título de la canción, ignorando artículos/conectores cortos."""
+        IGNORAR = {"el", "la", "los", "las", "de", "del", "y", "a", "en",
+                   "un", "una", "the", "of", "and", "in", "on", "to"}
+        return [
+            p for p in self._normalizar(texto).split()
+            if p not in IGNORAR and len(p) > 2
+        ]
+
+    def _coincide_con_la_cancion(self, titulo_cancion, r):
+        """
+        Verifica que el resultado sea DE ESA canción puntual, y no una
+        página general de la banda (ej: tabs.ultimate-guitar.com/artist/banda
+        listando todas sus canciones, en vez de la tab de una en particular).
+        """
+        palabras = self._palabras_significativas(titulo_cancion)
+        if not palabras:
+            return True  # título muy corto/raro, no filtramos por esto
+
+        texto_resultado = self._normalizar(r["titulo"] + " " + r["url"])
+
+        coincidencias = sum(1 for p in palabras if p in texto_resultado)
+        # Exigimos que aparezca al menos la mitad de las palabras
+        # significativas del título (o al menos 1 si el título es de una
+        # sola palabra significativa).
+        minimo = max(1, len(palabras) // 2)
+        return coincidencias >= minimo
+
+    def _puntuar_y_ordenar(self, resultados, titulo_cancion):
         puntuados = []
 
         for r in resultados:
@@ -145,6 +201,11 @@ class handler(BaseHTTPRequestHandler):
                 continue
 
             if any(palabra in titulo_lower for palabra in PALABRAS_CLAVE_DESCARTAR_TITULO):
+                continue
+
+            # Descarta páginas genéricas de la banda que no mencionan
+            # la canción puntual (ej: tab index del artista completo).
+            if not self._coincide_con_la_cancion(titulo_cancion, r):
                 continue
 
             puntaje_crudo = 0
