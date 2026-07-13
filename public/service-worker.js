@@ -1,21 +1,27 @@
-const CACHE_NAME = 'dametab-cache-v1';
+const CACHE_NAME = 'dametab-cache-v2'; // v2: fuerza actualización del cache viejo (que tenía rutas rotas)
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/app.js',
-  '/manifest.json',
-  '/iconos/icono-192.png',
-  '/iconos/icono-512.png'
+  './',
+  './index.html',
+  './style.css',
+  './app.js',
+  './manifest.json'
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
+        // Cacheamos cada recurso por separado: si uno falla, no se cae toda la instalación
+        // (esto era lo que rompía el SW antes, por los íconos que no existían)
+        return Promise.all(
+          urlsToCache.map(url =>
+            cache.add(url).catch(err => {
+              console.warn('No se pudo cachear:', url, err);
+            })
+          )
+        );
       })
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -42,6 +48,6 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
