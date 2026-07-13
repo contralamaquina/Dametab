@@ -1,0 +1,2 @@
+# No se necesitan dependencias externas: identificar.py y buscar.py
+# usan solo la librería estándar de Python (json, os, urllib).
