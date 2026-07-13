@@ -130,6 +130,15 @@ function mostrarEstado(texto) {
   estadoDiv.textContent = texto;
 }
 
+function extraerDominio(url) {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    return host;
+  } catch {
+    return url;
+  }
+}
+
 function mostrarResultado(cancion, tab) {
   mostrarEstado("");
   cancionTitulo.textContent = cancion.titulo;
@@ -144,6 +153,10 @@ function mostrarResultado(cancion, tab) {
     const info = document.createElement("div");
     info.className = "tarjeta-info";
 
+    const dominio = document.createElement("span");
+    dominio.className = "tarjeta-dominio";
+    dominio.textContent = extraerDominio(opcion.url);
+
     const titulo = document.createElement("p");
     titulo.className = "tarjeta-titulo";
     titulo.textContent = opcion.titulo;
@@ -154,6 +167,7 @@ function mostrarResultado(cancion, tab) {
       "♪".repeat(opcion.estrellas) +
       `<span class="cuerda-apagada">${"♪".repeat(5 - opcion.estrellas)}</span>`;
 
+    info.appendChild(dominio);
     info.appendChild(titulo);
     info.appendChild(estrellas);
 
