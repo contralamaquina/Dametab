@@ -9,7 +9,6 @@ from http.server import BaseHTTPRequestHandler
 import json
 import os
 import urllib.request
-from urllib.parse import urlparse
 
 
 SITIOS_PRIORIDAD = {
@@ -66,8 +65,8 @@ class handler(BaseHTTPRequestHandler):
             self._responder(400, {"error": "Body inválido"})
             return
 
-        titulo = (body.get("titulo") or "").strip()
-        artista = (body.get("artista") or "").strip()
+        titulo = body.get("titulo")
+        artista = body.get("artista")
         if not titulo or not artista:
             self._responder(400, {"error": "Falta título o artista"})
             return
@@ -115,7 +114,6 @@ class handler(BaseHTTPRequestHandler):
         })
 
     def _buscar_en_serper(self, consulta, api_key):
-        """Realiza una búsqueda en Serper.dev y retorna los resultados."""
         url = "https://google.serper.dev/search"
         payload = json.dumps({"q": consulta, "num": 8}).encode("utf-8")
 
@@ -136,39 +134,26 @@ class handler(BaseHTTPRequestHandler):
             for item in items
         ]
 
-    def _es_dominio_descartar(self, url):
-        """Verifica si el dominio de la URL debe ser descartado."""
-        try:
-            domain = urlparse(url).netloc.lower()
-            return any(domain.endswith(sitio) for sitio in SITIOS_DESCARTAR)
-        except Exception:
-            return False
-
     def _puntuar_y_ordenar(self, resultados):
-        """Filtra, puntúa y ordena resultados por confiabilidad."""
         puntuados = []
 
         for r in resultados:
             url_lower = r["url"].lower()
             titulo_lower = r["titulo"].lower()
 
-            # Descartar sitios en la lista negra
-            if self._es_dominio_descartar(url_lower):
+            if any(sitio in url_lower for sitio in SITIOS_DESCARTAR):
                 continue
 
-            # Descartar resultados con palabras clave que indican no son tabs
             if any(palabra in titulo_lower for palabra in PALABRAS_CLAVE_DESCARTAR_TITULO):
                 continue
 
             puntaje_crudo = 0
 
-            # Sumar puntos por sitio de prioridad
             for sitio, valor in SITIOS_PRIORIDAD.items():
                 if sitio in url_lower:
                     puntaje_crudo += valor
                     break
 
-            # Sumar puntos bonus por palabras clave en el título
             for palabra in PALABRAS_CLAVE_BONUS:
                 if palabra in titulo_lower:
                     puntaje_crudo += 2
@@ -186,13 +171,11 @@ class handler(BaseHTTPRequestHandler):
         return puntuados
 
     def _a_estrellas(self, puntaje_crudo):
-        """Convierte un puntaje bruto a una calificación de 0-5 estrellas."""
         PUNTAJE_MAXIMO = 12
         estrellas = round((puntaje_crudo / PUNTAJE_MAXIMO) * 5)
         return max(0, min(5, estrellas))
 
     def _responder(self, status_code, data):
-        """Envía una respuesta JSON con el código de estado especificado."""
         self.send_response(status_code)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
