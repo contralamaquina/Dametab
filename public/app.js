@@ -1,15 +1,30 @@
 const btnGrabar = document.getElementById("btnGrabar");
 const btnTexto = document.getElementById("btnTexto");
 const visualizador = document.getElementById("visualizador");
+const ondas = document.getElementById("ondas");
+const vinilo = document.getElementById("vinilo");
 const estadoDiv = document.getElementById("estado");
 const resultadoDiv = document.getElementById("resultado");
 const cancionTitulo = document.getElementById("cancionTitulo");
 const cancionArtista = document.getElementById("cancionArtista");
 const listaOpciones = document.getElementById("listaOpciones");
+const portadaAlbum = document.getElementById("portadaAlbum");
+const btnNuevaBusqueda = document.getElementById("btnNuevaBusqueda");
 
 const DURACION_GRABACION_MS = 10000; // 10 segundos
 
+// Registrar el service worker (necesario para que el navegador
+// considere la app instalable como PWA)
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/service-worker.js").catch((error) => {
+      console.warn("No se pudo registrar el service worker:", error);
+    });
+  });
+}
+
 btnGrabar.addEventListener("click", iniciarFlujo);
+btnNuevaBusqueda.addEventListener("click", reiniciar);
 
 async function iniciarFlujo() {
   resultadoDiv.classList.add("oculto");
@@ -17,8 +32,8 @@ async function iniciarFlujo() {
 
   try {
     const audioBase64 = await grabarAudio();
-    mostrarEstado("Identificando la canción…");
 
+    mostrarEstadoProcesando("Identificando la canción…");
     const cancion = await identificarCancion(audioBase64);
     if (!cancion.encontrada) {
       mostrarEstado("No pude identificar la canción. Probá de nuevo, más cerca del parlante.");
@@ -26,8 +41,7 @@ async function iniciarFlujo() {
       return;
     }
 
-    mostrarEstado(`Encontré "${cancion.titulo}" — buscando tablatura…`);
-
+    mostrarEstadoProcesando(`Encontré "${cancion.titulo}" — buscando tablatura…`);
     const tab = await buscarTablatura(cancion.titulo, cancion.artista);
     if (!tab.encontrado) {
       mostrarEstado("Identifiqué la canción, pero no encontré la tablatura. Probá buscarla manualmente.");
@@ -35,13 +49,24 @@ async function iniciarFlujo() {
       return;
     }
 
+    ocultarVinilo();
     mostrarResultado(cancion, tab);
     resetearBoton();
   } catch (error) {
     console.error(error);
+    ocultarVinilo();
     mostrarEstado("Hubo un error: " + error.message);
     resetearBoton();
   }
+}
+
+function mostrarEstadoProcesando(texto) {
+  mostrarEstado(texto);
+  vinilo.classList.remove("oculto");
+}
+
+function ocultarVinilo() {
+  vinilo.classList.add("oculto");
 }
 
 function resetearBoton() {
@@ -49,6 +74,8 @@ function resetearBoton() {
   btnGrabar.classList.remove("grabando");
   btnTexto.textContent = "Escuchar";
   visualizador.classList.add("oculto");
+  ondas.classList.add("oculto");
+  vinilo.classList.add("oculto");
 }
 
 function grabarAudio() {
@@ -64,6 +91,7 @@ function grabarAudio() {
         stream.getTracks().forEach((track) => track.stop());
         btnGrabar.classList.remove("grabando");
         visualizador.classList.add("oculto");
+        ondas.classList.add("oculto");
         btnTexto.textContent = "Escuchar";
 
         const blob = new Blob(chunks, { type: "audio/webm" });
@@ -75,6 +103,7 @@ function grabarAudio() {
       btnGrabar.classList.add("grabando");
       btnTexto.textContent = "Escuchando…";
       visualizador.classList.remove("oculto");
+      ondas.classList.remove("oculto");
       mostrarEstado("Acercá el micrófono a la música 🎧");
 
       setTimeout(() => mediaRecorder.stop(), DURACION_GRABACION_MS);
@@ -139,10 +168,32 @@ function extraerDominio(url) {
   }
 }
 
+function reiniciar() {
+  resultadoDiv.classList.add("oculto");
+  listaOpciones.innerHTML = "";
+  portadaAlbum.classList.add("oculto");
+  portadaAlbum.removeAttribute("src");
+  mostrarEstado("");
+  btnGrabar.disabled = false;
+  visualizador.classList.add("oculto");
+  ondas.classList.add("oculto");
+  vinilo.classList.add("oculto");
+  // Llevamos el scroll arriba del todo para que quede como "recién entrado"
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 function mostrarResultado(cancion, tab) {
   mostrarEstado("");
   cancionTitulo.textContent = cancion.titulo;
   cancionArtista.textContent = cancion.artista;
+
+  if (cancion.portada) {
+    portadaAlbum.src = cancion.portada;
+    portadaAlbum.classList.remove("oculto");
+  } else {
+    portadaAlbum.classList.add("oculto");
+    portadaAlbum.removeAttribute("src");
+  }
 
   listaOpciones.innerHTML = "";
 
