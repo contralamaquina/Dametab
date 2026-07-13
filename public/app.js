@@ -43,11 +43,6 @@ async function iniciarFlujo() {
 
     mostrarEstadoProcesando(`Encontré "${cancion.titulo}" — buscando tablatura…`);
     const tab = await buscarTablatura(cancion.titulo, cancion.artista);
-    if (!tab.encontrado) {
-      mostrarEstado("Identifiqué la canción, pero no encontré la tablatura. Probá buscarla manualmente.");
-      resetearBoton();
-      return;
-    }
 
     ocultarVinilo();
     mostrarResultado(cancion, tab);
@@ -201,6 +196,12 @@ function mostrarResultado(cancion, tab) {
 
   listaOpciones.innerHTML = "";
 
+  if (!tab.encontrado) {
+    mostrarSinTablatura(cancion);
+    resultadoDiv.classList.remove("oculto");
+    return;
+  }
+
   tab.opciones.forEach((opcion) => {
     const tarjeta = document.createElement("div");
     tarjeta.className = "tarjeta-opcion";
@@ -239,4 +240,25 @@ function mostrarResultado(cancion, tab) {
   });
 
   resultadoDiv.classList.remove("oculto");
+}
+
+function mostrarSinTablatura(cancion) {
+  const aviso = document.createElement("p");
+  aviso.className = "tarjeta-titulo";
+  aviso.textContent = "No encontramos la tablatura automáticamente, pero podés buscarla manualmente:";
+
+  const consulta = encodeURIComponent(`${cancion.titulo} ${cancion.artista} acordes`);
+  const boton = document.createElement("a");
+  boton.href = `https://www.google.com/search?q=${consulta}`;
+  boton.target = "_blank";
+  boton.rel = "noopener noreferrer";
+  boton.className = "boton-tab";
+  boton.textContent = "Buscar en Google →";
+
+  const tarjeta = document.createElement("div");
+  tarjeta.className = "tarjeta-opcion";
+  tarjeta.appendChild(aviso);
+  tarjeta.appendChild(boton);
+
+  listaOpciones.appendChild(tarjeta);
 }
