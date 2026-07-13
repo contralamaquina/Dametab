@@ -223,6 +223,7 @@ h1 {
 #btnGrabar.grabando {
   background: var(--verde-toxic);
   border-color: var(--crudo);
+  color: var(--negro);
   animation: latido 1.3s ease-in-out infinite;
 }
 
@@ -379,10 +380,17 @@ h1 {
 }
 
 .estado {
+  position: relative;
+  z-index: 2;
   color: var(--crudo-op);
   font-size: 0.9rem;
   min-height: 20px;
   text-align: center;
+}
+
+.estado.escuchando {
+  color: var(--verde-toxic);
+  font-weight: 600;
 }
 
 /* ---------- Resultado ---------- */

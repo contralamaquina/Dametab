@@ -62,6 +62,7 @@ async function iniciarFlujo() {
 
 function mostrarEstadoProcesando(texto) {
   mostrarEstado(texto);
+  estadoDiv.classList.remove("escuchando");
   vinilo.classList.remove("oculto");
 }
 
@@ -76,6 +77,7 @@ function resetearBoton() {
   visualizador.classList.add("oculto");
   ondas.classList.add("oculto");
   vinilo.classList.add("oculto");
+  estadoDiv.classList.remove("escuchando");
 }
 
 function grabarAudio() {
@@ -105,6 +107,7 @@ function grabarAudio() {
       visualizador.classList.remove("oculto");
       ondas.classList.remove("oculto");
       mostrarEstado("Acercá el micrófono a la música 🎧");
+      estadoDiv.classList.add("escuchando");
 
       setTimeout(() => mediaRecorder.stop(), DURACION_GRABACION_MS);
     } catch (error) {
@@ -174,6 +177,7 @@ function reiniciar() {
   portadaAlbum.classList.add("oculto");
   portadaAlbum.removeAttribute("src");
   mostrarEstado("");
+  estadoDiv.classList.remove("escuchando");
   btnGrabar.disabled = false;
   visualizador.classList.add("oculto");
   ondas.classList.add("oculto");
