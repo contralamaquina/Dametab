@@ -12,7 +12,8 @@ import urllib.request
 
 
 SITIOS_PRIORIDAD = {
-    "lacuerda.net": 10,
+    "acordes.lacuerda.net": 10,
+    "lacuerda.net": 9,
     "cifraclub.com": 7,
     "cifraclub.com.br": 7,
     "ultimate-guitar.com": 6,
@@ -27,6 +28,7 @@ SITIOS_DESCARTAR = [
     "facebook.com",
     "instagram.com",
     "tiktok.com",
+    "chords.lacuerda.net",
 ]
 
 PALABRAS_CLAVE_BONUS = ["acordes", "tablatura", "tab", "chords"]
