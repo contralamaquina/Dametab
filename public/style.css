@@ -587,3 +587,85 @@ h1 {
     transform: rotate(-1deg);
   }
 }
+/* ===========================================================
+   Búsqueda manual (fallback cuando no se identifica el audio)
+   Agregar al final de style.css
+   =========================================================== */
+
+.busqueda-manual {
+  max-width: 480px;
+  margin: 2rem auto 0;
+  padding: 1.5rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+}
+
+.busqueda-manual-titulo {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 1.4rem;
+}
+
+.busqueda-manual-ayuda {
+  margin: 0 0 1.25rem;
+  opacity: 0.7;
+  font-size: 0.9rem;
+}
+
+.form-busqueda-manual {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  text-align: left;
+}
+
+.form-busqueda-manual label {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin-top: 0.5rem;
+}
+
+.form-busqueda-manual input {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+.form-busqueda-manual input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.busqueda-manual-botones {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.busqueda-manual-botones .boton-tab {
+  flex: 1;
+  text-align: center;
+  border: none;
+  cursor: pointer;
+}
+
+.boton-secundario {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.boton-secundario:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
