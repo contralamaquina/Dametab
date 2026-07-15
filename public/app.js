@@ -98,7 +98,8 @@ async function manejarBusquedaManual(evento) {
     // manda tal cual y el buscador se encarga de interpretarlo.
     const tab = await buscarTablatura(
       titulo || "(sin título)",
-      artista || "(sin artista)"
+      artista || "(sin artista)",
+      true
     );
 
     ocultarVinilo();
@@ -215,11 +216,11 @@ async function identificarCancion(audioBase64) {
   return respuesta.json();
 }
 
-async function buscarTablatura(titulo, artista) {
+async function buscarTablatura(titulo, artista, esBusquedaManual = false) {
   const respuesta = await fetch("/api/buscar", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ titulo, artista }),
+    body: JSON.stringify({ titulo, artista, manual: esBusquedaManual }),
   });
 
   if (!respuesta.ok) {

@@ -89,6 +89,15 @@ class handler(BaseHTTPRequestHandler):
             self._responder(400, {"error": "Falta título o artista"})
             return
 
+        # Cuando la búsqueda viene del formulario manual (el usuario tipeó
+        # el nombre a mano porque no se pudo identificar el audio), reforzamos
+        # la consulta para blindarla contra resultados de YouTube/streaming/
+        # letras que podrían colarse si el título es ambiguo o está mal
+        # escrito. Esto NO afecta el título usado para puntuar/matchear
+        # resultados (eso sigue siendo el título tal cual lo escribió el
+        # usuario), solo el texto que se le manda a Serper.
+        es_busqueda_manual = bool(body.get("manual"))
+
         api_key = os.environ.get("SERPER_API_KEY")
         if not api_key:
             self._responder(500, {"error": "Falta configurar SERPER_API_KEY"})
@@ -99,6 +108,12 @@ class handler(BaseHTTPRequestHandler):
         # que aparezcan noticias, playlists, tiendas, etc.
         dominios_confianza = " OR ".join(f"site:{d}" for d in SITIOS_PRIORIDAD)
         consulta_restringida = f'"{titulo}" "{artista}" ({dominios_confianza})'
+        if es_busqueda_manual:
+            # Refuerzo extra: aunque ya restringimos por dominio, sumamos
+            # "acordes OR tablatura" para que el propio ranking de Google
+            # priorice la página de acordes puntual y no, por ejemplo, un
+            # índice general del artista en esos mismos sitios.
+            consulta_restringida += " (acordes OR tablatura)"
 
         try:
             resultados = self._buscar_en_serper(consulta_restringida, api_key)
@@ -111,6 +126,12 @@ class handler(BaseHTTPRequestHandler):
         # explícitamente en la consulta para reducir ruido.
         if not resultados:
             consulta_amplia = f'"{titulo}" "{artista}" (acordes OR tablatura OR chords OR tabs) guitarra'
+            if es_busqueda_manual:
+                # En la búsqueda manual el título puede estar mal escrito o
+                # ser ambiguo (nombre de video, apodo del artista, etc.), así
+                # que además excluimos explícitamente contenido de video para
+                # que Google no priorice el resultado más obvio (el video).
+                consulta_amplia += " -youtube -video -letra -lyrics"
             try:
                 resultados = self._buscar_en_serper(consulta_amplia, api_key)
             except Exception as e:
