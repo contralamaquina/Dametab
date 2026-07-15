@@ -592,6 +592,10 @@ h1 {
    Agregar al final de style.css
    =========================================================== */
 
+.busqueda-manual.oculto {
+  display: none;
+}
+
 .busqueda-manual {
   max-width: 480px;
   margin: 2rem auto 0;
